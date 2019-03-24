@@ -101,6 +101,7 @@ if __name__ == "__main__":
         if i%interval == 0:
             plt.plot(input_data_s, correct_data, linestyle="dashed")
             plt.scatter(plot_x,plot_y,marker="+")
-            plt.show()
+            #plt.show()
+            plt.pause(0.01)
 
     pass
