@@ -16,8 +16,8 @@ for x in X :
             correct_data.append([1,0]) # 上の領域
 
 n_data = len(correct_data)
-input_data = np.array(input_data)
-correct_data = np.array(correct_data)
+input_data = np.array(input_data) # (2,441)
+correct_data = np.array(correct_data) # (2,441)
 
 
 # number of neuron
@@ -98,10 +98,10 @@ if __name__ == "__main__":
         y_2 = []
         
         for idx in index_random:
-            x = input_data[idx]
-            t = correct_data[idx]
+            x = input_data[idx] # (2,1)
+            t = correct_data[idx] # (2, 1)
 
-            middle_layer.forward(x.reshape(1,2))
+            middle_layer.forward(x.reshape(1,2)) #(1,2)
             output_layer.forward(middle_layer.y)
 
             output_layer.backward(t.reshape(1,2))
