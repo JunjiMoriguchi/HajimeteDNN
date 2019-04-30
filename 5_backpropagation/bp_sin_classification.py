@@ -28,7 +28,7 @@ n_out = 2
 # hyper prameters
 wb_width = 0.01
 eta      = 0.1
-epoch    = 101
+epoch    = 1
 interval = 10
 
 class MiddleLayer:
@@ -102,10 +102,11 @@ if __name__ == "__main__":
             t = correct_data[idx] # (2, 1)
 
             middle_layer.forward(x.reshape(1,2)) #(1,2)
-            output_layer.forward(middle_layer.y)
+            output_layer.forward(middle_layer.y) #(1,6)
 
             output_layer.backward(t.reshape(1,2))
-            middle_layer.backward(output_layer.grad_x)
+            middle_layer.backward(output_layer.grad_x) 
+            print(output_layer.grad_x.shape)
 
             middle_layer.update(eta)            
             output_layer.update(eta)
