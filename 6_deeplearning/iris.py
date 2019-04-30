@@ -63,7 +63,7 @@ class MiddleLayer(BaseLayer):
         delta = grad_y * np.where(self.u <= 0, 0, 1) # grad ReLU
         self.grad_w = np.dot(self.x.T, delta)
         self.grad_b = np.sum(delta, axis=0)
-        self.grad_z = np.dot(delta, self.w.T)
+        self.grad_x = np.dot(delta, self.w.T)
 class OutputLayer(BaseLayer):
     def foward(self, x):
         self.x = x
@@ -86,7 +86,7 @@ def forward_propagation(x):
 def backpropagation(t):
     output_layer.backward(t)
     middle_layer_2.backword(output_layer.grad_x)
-    middle_layer_1.backword(middle_layer_2.y)
+    middle_layer_1.backword(middle_layer_2.grad_x)
 def uppdate_wb():
     middle_layer_1.update(eta)
     middle_layer_2.update(eta)
@@ -132,7 +132,7 @@ for i in range(epoch):
 
 plt.plot(train_error_x, train_error_y, label="Train")
 plt.plot(test_error_x, test_error_y, label="Test")
-plt.legend()
+plt.legend() #凡例表示
 
 plt.xlabel("Epochs")
 plt.ylabel("Error")
