@@ -13,7 +13,7 @@ def im2col(image, flt_h, flt_w, out_h, out_w, stride, pad):
             cols[:,:,h,w,:,:] = img_pad[:,:,h:h_lim:stride, w:w_lim:stride] #batch x ch x imgH x imgW
     cols = cols.transpose(1,2,3,0,4,5).reshape(n_ch*flt_h*flt_w, n_bt*out_h*out_w)
 
-    return cols
+    return cols # cols : CxFhxFw, BxOhxOw
 
 img = np.array([[
                 [ #R(HxW)
