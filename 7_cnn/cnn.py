@@ -14,8 +14,8 @@ wb_width = 0.1
 eta = 0.01
 epoch = 50
 batch_size = 8
-interval = 10
-n_sample = 200
+interval = 10 #学習経過の表示間隔
+n_sample = 200 #誤差計測のサンプル数
 
 class ConvLayer:
     def __init__(self,x_ch,x_h,x_w,n_flt,flt_h,flt_w,stride,pad):
@@ -62,6 +62,7 @@ class ConvLayer:
         x_shape = (n_bt,x_ch,x_h,x_w)
         self.grad = col2im(grad_cols.T, x_shape, flt_h, flt_w, y_h, y_w, stride, pad) # self.grad: B,C,Ih,Iw
     def update(self,eta):
+        # Ada Grad
         self.h_w += self.grad_w * self.grad_w
         self.w -= eta / np.sqrt(self.h_w) * self.grad_w
         self.h_b += self.grad_b * self.grad_b
@@ -103,37 +104,6 @@ class PoolingLayer:
         x_shape = (n_bt,x_ch,x_h,x_w)
         self.grad_x = col2im(grad_cols,x_shape,pool,pool,y_h,y_w,pool,pad) #BMOwOh
 
-
-# input data sets
-digits_data = datasets.load_digits()
-input_data = digits_data.data
-correct = digits_data.target
-n_data = len(correct)
-# 標準化
-ave_input = np.average(input_data)
-std_input = np.std(input_data)
-input_data = (input_data - ave_input) / std_input
-# one-hot
-correct_data = np.zeros((n_data, 10)) # N, 10
-for i in range(n_data):
-    correct_data[i, correct[i]] = 1.0
-# training & test data
-index = np.arange(n_data)
-index_train = index[index%3 !=0]
-index_test = index[index%3 == 0]
-input_train = input_data[index_train,:]
-correct_train = correct_data[index_train,:]
-input_test = input_data[index_test,:]
-correct_test = correct_data[index_test,:]
-n_train = input_train.shape[0]
-n_test = input_test.shape[0]
-# initialized layer
-cl_1 = ConvLayer(img_ch, img_h, img_w, 10, 3, 3, 1, 1)
-pl_1 = PoolingLayer(cl_1.y_ch, cl_1.y_h, cl_1.y_w, 2, 0)
-n_fc_in = pl_1.y_ch * pl_1.y_h * pl_1.y_w #full conv in
-ml_1 = MiddleLayer(n_fc_in, 100)
-ol_1 = OutputLayer(100,10)
-
 # Function forward
 def forward_propagation(x):
     n_bt = x.shape[0]
@@ -160,6 +130,7 @@ def update_wb():
     ol_1.update(eta)
 
 def get_error(t, batch_size):
+    #交差エントロピー誤差を計算
     return -np.sum(t * np.log(ol_1.y + 1e-7)) / batch_size
 
 def forward_sample(inp, correct, n_sample):
@@ -171,16 +142,60 @@ def forward_sample(inp, correct, n_sample):
     forward_propagation(x)
     return x,t
 
+# input data sets
+digits_data = datasets.load_digits()
+input_data = digits_data.data
+correct = digits_data.target
+n_data = len(correct)
+
+# 標準化
+ave_input = np.average(input_data)
+std_input = np.std(input_data)
+input_data = (input_data - ave_input) / std_input
+
+# one-hot
+correct_data = np.zeros((n_data, 10)) # N, 10
+for i in range(n_data):
+    correct_data[i, correct[i]] = 1.0
+
+# make a set of training & test data
+index = np.arange(n_data)
+index_train = index[index%3 !=0]
+index_test = index[index%3 == 0]
+input_train = input_data[index_train,:]
+correct_train = correct_data[index_train,:]
+input_test = input_data[index_test,:]
+correct_test = correct_data[index_test,:]
+n_train = input_train.shape[0]
+n_test = input_test.shape[0]
+
+# generate the instance of class
+cl_1 = ConvLayer(img_ch, img_h, img_w, 10, 3, 3, 1, 1) # Filter NUM = 10(大き過ぎると過学習しやすい)
+pl_1 = PoolingLayer(cl_1.y_ch, cl_1.y_h, cl_1.y_w, 2, 0) # Pool aria = 2(大きすぎると特徴をぼやかし過ぎる)
+n_fc_in = pl_1.y_ch * pl_1.y_h * pl_1.y_w #Polling Layer Output feature size
+ml_1 = MiddleLayer(n_fc_in, 100) # nuron NUM = 100
+ol_1 = OutputLayer(100,10) # Nuron NUM = 100, Output = 10
+
 # 誤差記録用
 train_error_x = []
 train_error_y = []
 test_error_x = []
 test_error_y = []
 
+# the learninng procesce
 n_batch = n_train // batch_size
-for i in range(epoch):
+for i in range(epoch): #Epoch
+    index_rand = np.arange(n_train)
+    np.random.shuffle(index_rand)
+    for j in range(n_batch): #batch
+        mb_index = index_rand[j*batch_size : (j+1)*batch_size]
+        x = input_train[mb_index,:]
+        t = correct_train[mb_index,:]
+        forward_propagation(x)
+        backward_propagation(t)
+        update_wb()
 
-    # learning evaluation
+    # output the learning progress
     x,t = forward_sample(input_train, correct_train, n_sample)
     error_train = get_error(t, n_sample)
 
@@ -196,34 +211,20 @@ for i in range(epoch):
         print("Epoch:"+str(i)+"/"+str(epoch), 
                 "Error_train:"+str(error_train),
                 "Error_test:"+str(error_test))
-    
-    # learninng
-    index_rand = np.arange(n_train)
-    np.random.shuffle(index_rand)
-    for j in range(n_batch):
-        mb_index = index_rand[j*batch_size : (j+1)*batch_size]
-        x = input_train[mb_index,:]
-        t = correct_train[mb_index,:]
-        forward_propagation(x)
-        backward_propagation(t)
-        update_wb()
 
-# graph learning result
+# show the graph of learning result
 plt.plot(train_error_x,train_error_y,label="Train")
 plt.plot(test_error_x,test_error_y,label="Test")
 plt.legend()
-
 plt.xlabel("Epochs")
 plt.ylabel("Error")
-
 plt.show()
 
-# Estimation OK/NG
+# show the final estimated result
 x,t = forward_sample(input_train, correct_train, n_train)
 count_train = np.sum(np.argmax(ol_1.y, axis=1)==np.argmax(t,axis=1))
 x,t = forward_sample(input_test,correct_test,n_test)
 count_test = np.sum(np.argmax(ol_1.y, axis=1)==np.argmax(t,axis=1))
-
 print("Acuuracy Train:", 
     str(count_train/n_train*100)+"%",
     "Accuracy Test:",
